@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ChainSave 30天挑战</title>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <style>
+    body { background: #000; color: #0f0; font-family: Arial; text-align: center; padding: 50px; }
+    h1 { font-size: 36px; }
+    p { font-size: 24px; }
+    button { background: #0f0; color: #000; padding: 15px 30px; font-size: 20px; border: none; border-radius: 10px; cursor: pointer; margin: 20px; }
+    button:hover { background: #0c0; }
+    #status { margin-top: 20px; font-size: 18px; }
+  </style>
+</head>
+<body>
+  <h1>ChainSave BSC 社交储蓄</h1>
+  <p>一键存 100 USDT 加入 30 天挑战</p>
+  <button onclick="joinChallenge()">确认存入 100 USDT</button>
+  <div id="status"></div>
+
+  <script>
+    async function joinChallenge() {
+      const status = document.getElementById('status');
+      status.textContent = '连接钱包中...';
+
+      if (!window.ethereum) {
+        status.textContent = '请安装 MetaMask!';
+        return;
+      }
+
+      try {
+        await ethereum.request({ method: 'eth_requestAccounts' });
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const signer = provider.getSigner();
+
+        const usdtAddress = '0x55d398326f99059fF775485246999027B3197955';
+        const contractAddress = '0x0728cC14D847218346e09D9856Be722Dc666eB99';
+
+        const usdtABI = ['function approve(address spender, uint256 amount) public returns (bool)'];
+        const contractABI = ['function createChallenge(uint256 targetAmount, uint256 durationDays) public'];
+
+        const usdt = new ethers.Contract(usdtAddress, usdtABI, signer);
+        const contract = new ethers.Contract(contractAddress, contractABI, signer);
+
+        const amount = ethers.utils.parseUnits('100', 18);
+
+        status.textContent = '授权 USDT 中...';
+        const approveTx = await usdt.approve(contractAddress, amount);
+        await approveTx.wait();
+
+        status.textContent = '存入挑战中...';
+        const tx = await contract.createChallenge(amount, 30);
+        await tx.wait();
+
+        status.innerHTML = `
+          ✅ <strong>成功！</strong><br>
+          已存 100 USDT，30 天挑战开始！<br>
+          <a href="https://bscscan.com/address/0x0728cC14D847218346e09D9856Be722Dc666eB99#readContract" target="_blank" style="color:#0f0;">
+            查看锁仓 →
+          </a>
+        `;
+      } catch (error) {
+        status.textContent = '错误：' + (error.message || error);
+      }
+    }
+  </script>
+</body>
+</html>
